@@ -1,0 +1,4 @@
+# Mount log. The running mount writes C:\kd\s3\log.txt.
+settings.ini
+log.txt
+*.log
