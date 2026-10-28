@@ -34,11 +34,11 @@
       "Resource": [
         "arn:aws:s3:::customers",
         "arn:aws:s3:::customers/_template/*",
-        "arn:aws:s3:::customers/*/logistics/*",
-        "arn:aws:s3:::customers/*/network/*",
-        "arn:aws:s3:::customers/*/photographs/*",
-        "arn:aws:s3:::customers/*/projects/*",
-        "arn:aws:s3:::customers/*/visits/*"
+        "arn:aws:s3:::customers/*/*/logistics/*",
+        "arn:aws:s3:::customers/*/*/network/*",
+        "arn:aws:s3:::customers/*/*/photographs/*",
+        "arn:aws:s3:::customers/*/*/projects/*",
+        "arn:aws:s3:::customers/*/*/visits/*"
       ]
     },
     {
@@ -48,11 +48,11 @@
         "s3:*"
       ],
       "Resource": [
-        "arn:aws:s3:::customers/*/contracts/*",
-        "arn:aws:s3:::customers/*/invoices/*",
-        "arn:aws:s3:::customers/*/media/*",
-        "arn:aws:s3:::customers/*/proposals/*",
-        "arn:aws:s3:::customers/*/quotations/*"
+        "arn:aws:s3:::customers/*/*/contracts/*",
+        "arn:aws:s3:::customers/*/*/invoices/*",
+        "arn:aws:s3:::customers/*/*/media/*",
+        "arn:aws:s3:::customers/*/*/proposals/*",
+        "arn:aws:s3:::customers/*/*/quotations/*"
       ]
     },
     {

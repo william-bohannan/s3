@@ -1,0 +1,244 @@
+#!/bin/bash
+# Create the standard folders inside each existing customer site.
+# customers/{customer_name}/{site_name}/{contracts,invoices,...}
+#
+# One-liner. Run it as the same user who mounted the drive. It installs the
+# hourly cron job, then creates any missing folders once:
+#   curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/s3-ensure-dirs | bash
+#
+# Cron runs /etc/cron.hourly/s3-ensure-dirs. That name cannot contain a dot.
+# The mount path defaults to /mnt/s3. The one-liner copies S3_ROOT from the
+# installer .env into /etc/default/s3-ensure-dirs. The path must be the mounted
+# drive. An unmounted folder is left untouched.
+
+set -u
+
+CRON_DEST="/etc/cron.hourly/s3-ensure-dirs"
+DEFAULTS_FILE="/etc/default/s3-ensure-dirs"
+RAW_URL="https://raw.githubusercontent.com/william-bohannan/s3/main/s3-ensure-dirs"
+
+die() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
+is_cron_copy() {
+  [[ "${BASH_SOURCE[0]:-}" == "$CRON_DEST" ]]
+}
+
+as_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+read_s3_root() {
+  local file="$1" line value=""
+  [[ -f "$file" ]] || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" == S3_ROOT=* ]] || continue
+    value="${line#S3_ROOT=}"
+    value="$(trim "$value")"
+    if [[ ${#value} -ge 2 ]]; then
+      if [[ ( "$value" == \"*\" && "$value" == *\" ) || ( "$value" == \'*\' && "$value" == *\' ) ]]; then
+        value="${value:1:${#value}-2}"
+      fi
+    fi
+  done < "$file"
+  [[ -n "$value" ]] || return 1
+  printf '%s' "$value"
+}
+
+discover_root() {
+  local home candidate found
+  if [[ -n "${S3_ROOT:-}" ]]; then
+    printf '%s' "$S3_ROOT"
+    return 0
+  fi
+  local -a homes=() files=()
+  if [[ "$(id -u)" -eq 0 && -n "${SUDO_USER:-}" && "$SUDO_USER" != root ]] && command -v getent >/dev/null 2>&1; then
+    home="$(getent passwd "$SUDO_USER" | awk -F: '{print $6}')"
+    [[ -n "$home" ]] && homes+=("$home")
+  fi
+  homes+=("$HOME")
+  for home in "${homes[@]}"; do
+    files+=("${home}/.local/share/s3/.env" "${home}/.config/s3/.env")
+  done
+  if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+    files+=("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env")
+  fi
+  files+=("${PWD}/.env" "$DEFAULTS_FILE")
+  for candidate in "${files[@]}"; do
+    if found="$(read_s3_root "$candidate")"; then
+      printf '%s' "$found"
+      return 0
+    fi
+  done
+  printf '%s' "/mnt/s3"
+}
+
+validate_root() {
+  local value="$1"
+  if [[ "$value" != /* || "$value" == "/" || "$value" == *$'\n'* ]]; then
+    die "S3_ROOT must be an absolute path other than /."
+  fi
+}
+
+write_defaults() {
+  local root="$1" tmp
+  tmp="$(mktemp)" || die "Could not create a temporary file."
+  {
+    printf '%s\n' "# Mount folder for s3-ensure-dirs. The path must be the mounted drive."
+    printf 'S3_ROOT=%q\n' "$root"
+  } >"$tmp"
+  as_root install -m 644 "$tmp" "$DEFAULTS_FILE" || {
+    rm -f "$tmp"
+    die "Could not write ${DEFAULTS_FILE}."
+  }
+  rm -f "$tmp"
+}
+
+stage_script() {
+  local dest="$1" src="${BASH_SOURCE[0]:-}"
+  # A piped one-liner has already consumed stdin. Copy a real file, otherwise download.
+  case "$src" in
+    ""|bash|*/bash|/dev/fd/*|/proc/self/fd/*|/proc/[0-9]*/fd/*) src="" ;;
+  esac
+  if [[ -n "$src" && -f "$src" ]]; then
+    cp "$src" "$dest" || die "Could not read ${src}."
+    return 0
+  fi
+  command -v curl >/dev/null 2>&1 || die "curl is required to download s3-ensure-dirs."
+  curl -fsSL "$RAW_URL" -o "$dest" || die "Could not download s3-ensure-dirs."
+}
+
+install_hourly_job() {
+  local tmp root
+  if [[ "$(id -u)" -ne 0 ]]; then
+    command -v sudo >/dev/null 2>&1 || die "sudo is required to install ${CRON_DEST}."
+  fi
+  [[ -d /etc/cron.hourly ]] || die "Install the cron package, then re-run. /etc/cron.hourly is missing."
+  root="$(discover_root)"
+  validate_root "$root"
+  tmp="$(mktemp)" || die "Could not create a temporary file."
+  stage_script "$tmp"
+  if ! head -n 20 "$tmp" | grep -q 's3-ensure-dirs'; then
+    rm -f "$tmp"
+    die "The download was not s3-ensure-dirs."
+  fi
+  as_root install -m 755 "$tmp" "$CRON_DEST" || {
+    rm -f "$tmp"
+    die "Could not install ${CRON_DEST}."
+  }
+  rm -f "$tmp"
+  write_defaults "$root"
+  printf 'Installed %s\n' "$CRON_DEST"
+  printf 'Mount folder: %s\n' "$root"
+  printf '%s\n' "Cron runs it every hour."
+  if command -v mountpoint >/dev/null 2>&1 && mountpoint -q "$root"; then
+    printf '%s\n' "Running it once now."
+    S3_ENSURE_DIRS_VERBOSE=1
+  else
+    printf '%s\n' "${root} is not mounted. The hourly job will create folders once it is."
+  fi
+}
+
+if ! is_cron_copy; then
+  install_hourly_job
+fi
+
+if [[ -f "$DEFAULTS_FILE" ]]; then
+  # shellcheck disable=SC1091
+  . "$DEFAULTS_FILE"
+fi
+
+ROOT="${S3_ROOT:-/mnt/s3}"
+
+note() {
+  if [[ "${S3_ENSURE_DIRS_VERBOSE:-}" == 1 ]]; then
+    printf '%s\n' "$*"
+  fi
+  if command -v logger >/dev/null 2>&1; then
+    logger -t s3-ensure-dirs -- "$*" || true
+  fi
+}
+
+if [[ ! -d "$ROOT" ]]; then
+  exit 0
+fi
+if [[ "${S3_REQUIRE_MOUNT:-1}" != 0 ]]; then
+  if ! command -v mountpoint >/dev/null 2>&1 || ! mountpoint -q "$ROOT"; then
+    exit 0
+  fi
+fi
+
+# Make one directory. A missing parent, or a file sitting at that path, is left as it is.
+make_dir() {
+  local parent="$1" name="$2" dest
+  [[ -d "$parent" ]] || return 0
+  dest="${parent%/}/$name"
+  if [[ -d "$dest" ]]; then
+    return 0
+  fi
+  if [[ -e "$dest" ]]; then
+    note "skip ${dest#"$ROOT"/}: not a directory"
+    return 0
+  fi
+  if mkdir -- "$dest"; then
+    note "created ${dest#"$ROOT"/}"
+  else
+    note "failed ${dest#"$ROOT"/}"
+  fi
+}
+
+# customers/{customer_name}/{site_name}/{these folders}
+# Customer and site names already exist. This only fills in a site.
+customer_folders=(
+  contracts
+  invoices
+  logistics
+  media
+  network
+  photographs
+  projects
+  proposals
+  quotations
+  visits
+)
+
+is_standard_folder() {
+  local name="$1" item
+  for item in "${customer_folders[@]}"; do
+    [[ "$item" == "$name" ]] && return 0
+  done
+  return 1
+}
+
+if [[ -d "$ROOT/customers" ]]; then
+  while IFS= read -r -d '' customer; do
+    while IFS= read -r -d '' site; do
+      if is_standard_folder "${site##*/}"; then
+        continue
+      fi
+      for name in "${customer_folders[@]}"; do
+        make_dir "$site" "$name"
+      done
+    done < <(find "$customer" -mindepth 1 -maxdepth 1 -type d -print0)
+  done < <(find "$ROOT/customers" -mindepth 1 -maxdepth 1 -type d -print0)
+fi
+
+if [[ "${S3_ENSURE_DIRS_VERBOSE:-}" == 1 ]]; then
+  printf '%s\n' "Done."
+fi

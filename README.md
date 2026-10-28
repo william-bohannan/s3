@@ -134,7 +134,7 @@ The built-in values are remote name `s3`, volume name `S3 drive`, region `us-eas
 
 ### Install
 
-Put `.env` in the current directory and run:
+Put `.env` in the current directory and run (example /git/s3/):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
@@ -198,6 +198,18 @@ fusermount3 -u /mnt/s3
 ```
 
 Use the folder from `S3_ROOT`. rclone, fuse3, and `.env` stay on the machine. Remove the saved remote with `rclone config delete s3` when you want that gone too. The built-in remote name is `s3`.
+
+### Standard site folders
+
+`s3-ensure-dirs` creates the usual folders inside each existing `customers/{customer}/{site}` directory: contracts, invoices, logistics, media, network, photographs, projects, proposals, quotations, and visits. It does not create customer or site names. It leaves the mount untouched when `S3_ROOT` is not a mounted drive.
+
+After the installer, run this as the same user:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/s3-ensure-dirs | bash
+```
+
+The command installs `/etc/cron.hourly/s3-ensure-dirs`, copies `S3_ROOT` from `~/.local/share/s3/.env` into `/etc/default/s3-ensure-dirs`, and runs the job once. Cron runs that file every hour. Run the same line again to update it.
 
 ### Requirements
 

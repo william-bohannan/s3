@@ -63,7 +63,8 @@
         "s3:*"
       ],
       "Resource": [
-        "arn:aws:s3:::hod"
+        "arn:aws:s3:::hod",
+        "arn:aws:s3:::hod/*"
       ]
     },
     {

@@ -35,13 +35,12 @@
       ],
       "Resource": [
         "arn:aws:s3:::customers",
-        "arn:aws:s3:::customers/*/contracts/*",
-        "arn:aws:s3:::customers/*/invoices/*",
-        "arn:aws:s3:::customers/*/media/*",
-        "arn:aws:s3:::customers/*/proposals/*",
-        "arn:aws:s3:::customers/*/quotations/*"
-      ],
-      "Condition": {}
+        "arn:aws:s3:::customers/*/*/contracts/*",
+        "arn:aws:s3:::customers/*/*/invoices/*",
+        "arn:aws:s3:::customers/*/*/media/*",
+        "arn:aws:s3:::customers/*/*/proposals/*",
+        "arn:aws:s3:::customers/*/*/quotations/*"
+      ]
     },
     {
       "Sid": "CustomersFullAccess",
@@ -51,13 +50,12 @@
       ],
       "Resource": [
         "arn:aws:s3:::customers/_template/*",
-        "arn:aws:s3:::customers/*/logistics/*",
-        "arn:aws:s3:::customers/*/network/*",
-        "arn:aws:s3:::customers/*/photographs/*",
-        "arn:aws:s3:::customers/*/projects/*",
-        "arn:aws:s3:::customers/*/visits/*"
-      ],
-      "Condition": {}
+        "arn:aws:s3:::customers/*/*/logistics/*",
+        "arn:aws:s3:::customers/*/*/network/*",
+        "arn:aws:s3:::customers/*/*/photographs/*",
+        "arn:aws:s3:::customers/*/*/projects/*",
+        "arn:aws:s3:::customers/*/*/visits/*"
+      ]
     },
     {
       "Sid": "EngineeringFullAccess",
@@ -68,8 +66,7 @@
       "Resource": [
         "arn:aws:s3:::engineering",
         "arn:aws:s3:::engineering/*"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "ExecutiveDenyAccess",
@@ -92,8 +89,7 @@
       ],
       "Resource": [
         "arn:aws:s3:::hod"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "HodFullAccess",
@@ -104,8 +100,7 @@
       "Resource": [
         "arn:aws:s3:::hod/engineering/*",
         "arn:aws:s3:::hod/weekly-meetings/*"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "HumanResourcesDenyAccess",
@@ -140,8 +135,7 @@
       "Resource": [
         "arn:aws:s3:::knoxxa-digital",
         "arn:aws:s3:::knoxxa-digital/media/*"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "KnoxxaDigitalFullAccess",
@@ -151,8 +145,7 @@
       ],
       "Resource": [
         "arn:aws:s3:::knoxxa-digital/upload/*"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "LegalDenyAccess",
@@ -176,8 +169,7 @@
       "Resource": [
         "arn:aws:s3:::operations/field-services",
         "arn:aws:s3:::operations/field-services/*"
-      ],
-      "Condition": {}
+      ]
     },
     {
       "Sid": "SalesDenyAccess",

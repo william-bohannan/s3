@@ -1,1 +1,2 @@
 *.sh text eol=lf
+s3-ensure-dirs text eol=lf
