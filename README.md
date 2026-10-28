@@ -140,7 +140,7 @@ Put `.env` in the current directory and run (example /git/s3/):
 curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
 ```
 
-The command saves `install.sh` and `.env.example` to `~/.local/share/s3`, installs **fuse3** with apt, and installs **rclone 1.67 or newer** into `~/.local/bin` when the copy already on `PATH` is older. Run the same line again to update the script and reload the mount.
+The command saves `install.sh` and `.env.example` to `~/.local/share/s3`, installs **fuse3** with apt, and installs **rclone 1.67 or newer** into `~/.local/bin` when the copy already on `PATH` is older. Run the same line again to update the script and reload the mount. After the mount is up, it asks whether to install and start `s3-ensure-dirs`. Answer `y` to install it. Press Enter to skip.
 
 From a clone of this repo:
 
@@ -188,6 +188,7 @@ A blank optional value is reported and the built-in default stays. An unknown na
 3. Creates an rclone remote (`provider=Other`, path-style URLs, no bucket check, `sign_accept_encoding=false`, `use_x_id=false`, `disable_http2=true`).
 4. Lists buckets with `rclone lsd` to test the key. Open and save rights come from that key's server policy.
 5. Mounts the folder with `--allow-other` and the same cache settings as the Windows mount. The rclone process stays in the background. Output goes to the log.
+6. Asks whether to install and start `s3-ensure-dirs`. Answering `y` installs the hourly job and creates the standard site folders now. Pressing Enter skips it. The drive stays mounted either way.
 
 The mount stays up until you stop it or restart the computer. Run the installer again after a restart.
 
@@ -203,13 +204,13 @@ Use the folder from `S3_ROOT`. rclone, fuse3, and `.env` stay on the machine. Re
 
 `s3-ensure-dirs` creates the usual folders inside each existing `customers/{customer}/{site}` directory: contracts, invoices, logistics, media, network, photographs, projects, proposals, quotations, and visits. It does not create customer or site names. It leaves the mount untouched when `S3_ROOT` is not a mounted drive.
 
-After the installer, run this as the same user:
+The installer asks this at the end. Answering `y` installs `/etc/cron.hourly/s3-ensure-dirs`, saves the mount folder in `/etc/default/s3-ensure-dirs`, and creates any missing folders once. Cron runs that file every hour. On a later installer run, the question offers to update the job and run it again.
+
+To install or update it without running the whole installer, as the same user:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/s3-ensure-dirs | bash
 ```
-
-The command installs `/etc/cron.hourly/s3-ensure-dirs`, copies `S3_ROOT` from `~/.local/share/s3/.env` into `/etc/default/s3-ensure-dirs`, and runs the job once. Cron runs that file every hour. Run the same line again to update it.
 
 ### Requirements
 

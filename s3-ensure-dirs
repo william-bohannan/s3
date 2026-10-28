@@ -2,9 +2,10 @@
 # Create the standard folders inside each existing customer site.
 # customers/{customer_name}/{site_name}/{contracts,invoices,...}
 #
-# One-liner. Run it as the same user who mounted the drive. It installs the
-# hourly cron job, then creates any missing folders once:
+# The Ubuntu installer asks this at the end. To install it on its own, as the
+# same user who mounted the drive:
 #   curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/s3-ensure-dirs | bash
+# That installs the hourly cron job, then creates any missing folders once.
 #
 # Cron runs /etc/cron.hourly/s3-ensure-dirs. That name cannot contain a dot.
 # The mount path defaults to /mnt/s3. The one-liner copies S3_ROOT from the

@@ -3,6 +3,7 @@
 # One-liner:
 #   curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
 # Run it again after changing .env so the mount picks up the new access key.
+# After the mount is up, it asks whether to install and start s3-ensure-dirs.
 
 set -euo pipefail
 
@@ -689,6 +690,59 @@ mount_remote() {
   printf 'Stop the mount with: fusermount3 -u %q\n' "$S3_ROOT"
 }
 
+# Ask only after the mount is up. Enter skips. y installs the hourly job and runs it once.
+offer_ensure_dirs() {
+  local answer dest tmp prompt
+  echo
+  if [[ -x /etc/cron.hourly/s3-ensure-dirs ]]; then
+    echo "s3-ensure-dirs is already installed. It creates the standard site folders and runs every hour."
+    prompt="Would you like to update and start s3-ensure-dirs? [y/N] "
+  else
+    echo "s3-ensure-dirs creates the standard folders inside each existing customer site and runs every hour."
+    prompt="Would you like to install and start s3-ensure-dirs? [y/N] "
+  fi
+  if [[ ! -r /dev/tty ]]; then
+    echo "To install it later, run:"
+    printf '  curl -fsSL %s/s3-ensure-dirs | bash\n' "$S3_RAW_BASE"
+    return 0
+  fi
+  printf '%s' "$prompt" >/dev/tty
+  if ! read -r answer </dev/tty; then
+    echo "Skipped s3-ensure-dirs."
+    return 0
+  fi
+  answer="$(trim "$answer")"
+  case "${answer,,}" in
+    y|yes) ;;
+    *)
+      echo "Skipped s3-ensure-dirs."
+      return 0
+      ;;
+  esac
+
+  dest="${SCRIPT_DIR}/s3-ensure-dirs"
+  tmp="$(mktemp)"
+  TMP_FILES+=("$tmp")
+  echo "Downloading s3-ensure-dirs..."
+  if ! curl -fsSL "${S3_RAW_BASE}/s3-ensure-dirs" -o "$tmp"; then
+    warn "Could not download s3-ensure-dirs. The drive is mounted."
+    printf 'Run it later with: curl -fsSL %s/s3-ensure-dirs | bash\n' "$S3_RAW_BASE" >&2
+    return 0
+  fi
+  if ! grep -q 's3-ensure-dirs' "$tmp"; then
+    warn "The download was not s3-ensure-dirs. The drive is mounted."
+    return 0
+  fi
+  mv "$tmp" "$dest"
+  chmod 755 "$dest"
+  # The child reads this value before it looks in .env.
+  export S3_ROOT
+  if ! bash "$dest"; then
+    warn "s3-ensure-dirs did not finish. The drive is mounted."
+    printf 'Run it later with: curl -fsSL %s/s3-ensure-dirs | bash\n' "$S3_RAW_BASE" >&2
+  fi
+}
+
 bootstrap_and_exec() {
   local dest tmp example
   [[ "$(id -u)" -eq 0 ]] && die "Run this as your regular user. It uses sudo only for system changes."
@@ -767,6 +821,7 @@ main() {
   stop_existing_mount
   refuse_nonempty_mount_point
   mount_remote
+  offer_ensure_dirs
 }
 
 if ! is_saved_script; then
