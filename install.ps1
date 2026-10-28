@@ -294,7 +294,10 @@ $created = Invoke-Rclone -RcloneArgs @(
     "no_check_bucket", "true",
     "sign_accept_encoding", "false",
     "use_x_id", "false",
-    "disable_http2", "true"
+    "disable_http2", "true",
+    # S3 has no folders. This uploads a zero-byte object ending in /
+    # when a directory is created, so other machines can see it.
+    "directory_markers", "true"
 )
 if ($created.ExitCode -ne 0) {
     Write-Host "rclone config create failed." -ForegroundColor Red

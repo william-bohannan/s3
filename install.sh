@@ -564,6 +564,9 @@ configure_remote() {
     sign_accept_encoding false
     use_x_id false
     disable_http2 true
+    # S3 has no folders. This uploads a zero-byte object ending in /
+    # when a directory is created, so other machines can see it.
+    directory_markers true
   )
   local remotes output
   remotes="$("$RCLONE" listremotes 2>/dev/null || true)"
@@ -662,6 +665,7 @@ mount_remote() {
   echo "Mounting ${REMOTE_NAME}: at ${S3_ROOT}."
   if ! "$RCLONE" mount "${REMOTE_NAME}:" "$S3_ROOT" \
     --links \
+    --s3-directory-markers \
     --vfs-cache-mode full \
     --vfs-cache-max-age 1h \
     --vfs-write-back 0s \

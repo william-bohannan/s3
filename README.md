@@ -106,12 +106,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
 
 1. Installs `WinFsp.WinFsp` and `Rclone.Rclone` with winget.
 2. Reads the endpoint and credentials from `settings.ini`, or asks for any of them that are missing.
-3. Creates an rclone `s3` remote (`provider=Other`, path-style URLs, no bucket check). RustFS hosts behind nginx need `sign_accept_encoding=false`, `use_x_id=false`, and `disable_http2=true`, and the installer sets those.
+3. Creates an rclone `s3` remote (`provider=Other`, path-style URLs, no bucket check, `directory_markers=true`). RustFS hosts behind nginx need `sign_accept_encoding=false`, `use_x_id=false`, and `disable_http2=true`, and the installer sets those. `directory_markers` uploads a zero-byte object whose name ends in `/` when a folder is created, so the empty folder shows up on the server and on other machines.
 4. Lists buckets with `rclone lsd` to test the key. Open and save rights come from that key's server policy.
 5. Registers the per-user logon task `MountS3`.
 6. Starts the mount. A live rclone process keeps the key it loaded at startup, so this step restarts it.
 
-The mount command uses `--links`, `--vfs-cache-mode full`, `--vfs-cache-max-age 1h`, `--vfs-write-back 0s`, `--dir-cache-time 30s`, `--buffer-size 64M`, `--transfers 8`, `--checkers 8`, and `--network-mode`. The window is hidden. Output is appended to the log.
+The mount command uses `--links`, `--s3-directory-markers`, `--vfs-cache-mode full`, `--vfs-cache-max-age 1h`, `--vfs-write-back 0s`, `--dir-cache-time 30s`, `--buffer-size 64M`, `--transfers 8`, `--checkers 8`, and `--network-mode`. The window is hidden. Output is appended to the log.
 
 A Windows service runs in session 0 and cannot show a drive in This PC. The logon task starts `start.ps1` in the interactive user session. An Administrator window does not see the mounted letter. `status.ps1` reports that when it is run elevated. If `start.ps1` itself is elevated, it schedules the mount back into the normal session.
 
@@ -185,9 +185,9 @@ A blank optional value is reported and the built-in default stays. An unknown na
 
 1. Installs `fuse3` with apt, plus `unzip` and `curl` when they are missing. rclone 1.67 or newer is required for the nginx signature options. An older packaged rclone stays in place, and a current build is installed in `~/.local/bin`.
 2. Enables `user_allow_other` in `/etc/fuse.conf`. On systems that have a `fuse` group, it adds your user to that group.
-3. Creates an rclone remote (`provider=Other`, path-style URLs, no bucket check, `sign_accept_encoding=false`, `use_x_id=false`, `disable_http2=true`).
+3. Creates an rclone remote (`provider=Other`, path-style URLs, no bucket check, `directory_markers=true`, `sign_accept_encoding=false`, `use_x_id=false`, `disable_http2=true`). `directory_markers` uploads a zero-byte object whose name ends in `/` when a folder is created, so the empty folder shows up on the server and on other machines.
 4. Lists buckets with `rclone lsd` to test the key. Open and save rights come from that key's server policy.
-5. Mounts the folder with `--allow-other` and the same cache settings as the Windows mount. The rclone process stays in the background. Output goes to the log.
+5. Mounts the folder with `--allow-other`, `--s3-directory-markers`, and the same cache settings as the Windows mount. The rclone process stays in the background. Output goes to the log.
 6. Asks whether to install and start `s3-ensure-dirs`. Answering `y` installs the hourly job and creates the standard site folders now. Pressing Enter skips it. The drive stays mounted either way.
 
 The mount stays up until you stop it or restart the computer. Run the installer again after a restart.
@@ -204,7 +204,7 @@ Use the folder from `S3_ROOT`. rclone, fuse3, and `.env` stay on the machine. Re
 
 `s3-ensure-dirs` creates the usual folders inside each existing `customers/{customer}/{site}` directory: contracts, invoices, logistics, media, network, photographs, projects, proposals, quotations, and visits. It does not create customer or site names. It leaves the mount untouched when `S3_ROOT` is not a mounted drive.
 
-The installer asks this at the end. Answering `y` installs `/etc/cron.hourly/s3-ensure-dirs`, saves the mount folder in `/etc/default/s3-ensure-dirs`, and creates any missing folders once. Cron runs that file every hour. On a later installer run, the question offers to update the job and run it again.
+The installer asks this at the end. Answering `y` installs `/etc/cron.hourly/s3-ensure-dirs`, saves the mount folder in `/etc/default/s3-ensure-dirs`, and creates any missing folders once. Cron runs that file every hour. On a later installer run, the question offers to update the job and run it again. Run the installer again before relying on folders that were created earlier: those lived only in the local cache and were not uploaded.
 
 To install or update it without running the whole installer, as the same user:
 

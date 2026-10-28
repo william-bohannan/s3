@@ -112,9 +112,10 @@ function Start-S3Hidden {
     "$(Get-Date -Format o) starting S3 drive on $($script:DriveLetter)" | Add-Content -LiteralPath $script:LogFile -Encoding UTF8
 
     # Leading and trailing quotes are required so cmd.exe /c keeps the inner quotes.
+    # --s3-directory-markers stores an empty folder as a zero-byte object ending in /.
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "cmd.exe"
-    $psi.Arguments = "/c `"`"$rclone`" mount $($script:RemoteName): $($script:DriveLetter) --links --vfs-cache-mode full --vfs-cache-max-age 1h --vfs-write-back 0s --dir-cache-time 30s --buffer-size 64M --transfers 8 --checkers 8 --network-mode --volname `"$($script:VolumeName)`" >> `"$($script:LogFile)`" 2>&1`""
+    $psi.Arguments = "/c `"`"$rclone`" mount $($script:RemoteName): $($script:DriveLetter) --links --s3-directory-markers --vfs-cache-mode full --vfs-cache-max-age 1h --vfs-write-back 0s --dir-cache-time 30s --buffer-size 64M --transfers 8 --checkers 8 --network-mode --volname `"$($script:VolumeName)`" >> `"$($script:LogFile)`" 2>&1`""
     $psi.WorkingDirectory = $dir
     $psi.UseShellExecute = $false
     $psi.CreateNoWindow = $true
