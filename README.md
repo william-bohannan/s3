@@ -10,6 +10,22 @@ Mount a [RustFS](https://github.com/rustfs/rustfs) server as a drive. On Windows
 | **Credentials** | `%AppData%\rclone\rclone.conf` | `~/.config/rclone/rclone.conf` |
 | **Repository** | https://github.com/william-bohannan/s3 | https://github.com/william-bohannan/s3 |
 
+## Quick Install
+
+Put your settings file in the current directory, then run the command for your system.
+
+Windows uses `settings.ini`:
+
+```powershell
+irm https://raw.githubusercontent.com/william-bohannan/s3/main/install.ps1 | iex
+```
+
+Ubuntu uses `.env`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
+```
+
 ## Windows
 
 The built-in values are drive `K:`, remote name `s3`, volume name `S3 drive`, region `us-east-1`, and log `C:\git\s3\full.log`. Set `Endpoint` in `settings.ini`. When that value is missing, the installer asks for it. `settings.example.ini` is a filled-in sample.
