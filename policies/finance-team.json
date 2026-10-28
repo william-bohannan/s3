@@ -1,0 +1,172 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BusinessDevelopmentDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::business-development",
+        "arn:aws:s3:::business-development/*"
+      ]
+    },
+    {
+      "Sid": "CatalogReadAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::catalog",
+        "arn:aws:s3:::catalog/*"
+      ]
+    },
+    {
+      "Sid": "CustomersReadAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::customers",
+        "arn:aws:s3:::customers/*/logistics/*",
+        "arn:aws:s3:::customers/*/network/*",
+        "arn:aws:s3:::customers/*/photographs/*",
+        "arn:aws:s3:::customers/*/projects/*",
+        "arn:aws:s3:::customers/*/visits/*"
+      ]
+    },
+    {
+      "Sid": "CustomersFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::customers/_template/*",
+        "arn:aws:s3:::customers/*/contracts/*",
+        "arn:aws:s3:::customers/*/invoices/*",
+        "arn:aws:s3:::customers/*/media/*",
+        "arn:aws:s3:::customers/*/proposals/*",
+        "arn:aws:s3:::customers/*/quotations/*"
+      ]
+    },
+    {
+      "Sid": "EngineeringDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::engineering",
+        "arn:aws:s3:::engineering/*"
+      ]
+    },
+    {
+      "Sid": "ExecutiveDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::executive",
+        "arn:aws:s3:::executive/*"
+      ]
+    },
+    {
+      "Sid": "HodDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::hod",
+        "arn:aws:s3:::hod/*"
+      ]
+    },
+    {
+      "Sid": "HumanResourcesDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::human-resources",
+        "arn:aws:s3:::human-resources/*"
+      ]
+    },
+    {
+      "Sid": "InfrastructureDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::infrastructure",
+        "arn:aws:s3:::infrastructure/*"
+      ]
+    },
+    {
+      "Sid": "KnoxxaDigitalReadAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::knoxxa-digital",
+        "arn:aws:s3:::knoxxa-digital/media/*"
+      ]
+    },
+    {
+      "Sid": "KnoxxaDigitalFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::knoxxa-digital/upload/*"
+      ]
+    },
+    {
+      "Sid": "LegalDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::legal",
+        "arn:aws:s3:::legal/*"
+      ]
+    },
+    {
+      "Sid": "OperationsDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::operations",
+        "arn:aws:s3:::operations/*"
+      ]
+    },
+    {
+      "Sid": "SalesDenyAccess",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::sales",
+        "arn:aws:s3:::sales/*"
+      ]
+    }
+  ]
+}

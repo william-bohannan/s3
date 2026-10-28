@@ -1,8 +1,8 @@
-# Install Knoxxa Digital as a hidden K: mount.
+# Install the S3 drive as a hidden mount.
 # One-liner from PowerShell:
 #   irm https://raw.githubusercontent.com/william-bohannan/s3/main/install.ps1 | iex
 # A settings.ini with valid values is used. Missing or invalid keys are requested.
-# Logs: C:\kd\s3\log.txt
+# Logs: C:\git\s3\full.log
 # Control: start.ps1, stop.ps1, status.ps1, uninstall.ps1
 
 & {
@@ -17,9 +17,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$knoxxaInline = -not $PSCommandPath
+$s3Inline = -not $PSCommandPath
 
-function Save-KnoxxaDownload {
+function Save-S3Download {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
         [Parameter(Mandatory = $true)][string]$OutFile,
@@ -40,9 +40,9 @@ function Save-KnoxxaDownload {
     if (-not $Required) { return }
     $sample = @(Get-Content -LiteralPath $OutFile -TotalCount 12 -ErrorAction SilentlyContinue)
     $text = $sample -join "`n"
-    if ($text -notmatch 'Knoxxa|knoxxa') {
+    if ($text -notmatch 's3 drive') {
         Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
-        throw "Download of $([IO.Path]::GetFileName($OutFile)) did not look like a Knoxxa script."
+        throw "Download of $([IO.Path]::GetFileName($OutFile)) did not look like an s3 drive script."
     }
 }
 
@@ -57,17 +57,17 @@ if (-not $bundled) {
     $ProgressPreference = "SilentlyContinue"
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $dest = Join-Path $env:LOCALAPPDATA "KnoxxaDigital"
-        $staging = Join-Path $env:TEMP ("KnoxxaDigital-" + [guid]::NewGuid().ToString("n"))
+        $dest = Join-Path $env:LOCALAPPDATA "s3"
+        $staging = Join-Path $env:TEMP ("s3-" + [guid]::NewGuid().ToString("n"))
         New-Item -ItemType Directory -Path $staging -Force | Out-Null
         $base = "https://raw.githubusercontent.com/william-bohannan/s3/main"
-        Write-Host "Downloading Knoxxa Digital to $dest..." -ForegroundColor Cyan
+        Write-Host "Downloading S3 drive to $dest..." -ForegroundColor Cyan
 
         foreach ($name in @("common.ps1", "install.ps1", "start.ps1", "stop.ps1", "status.ps1", "uninstall.ps1")) {
-            Save-KnoxxaDownload -Url "$base/$name" -OutFile (Join-Path $staging $name) -Required
+            Save-S3Download -Url "$base/$name" -OutFile (Join-Path $staging $name) -Required
         }
         foreach ($name in @("README.md", "settings.example.ini")) {
-            Save-KnoxxaDownload -Url "$base/$name" -OutFile (Join-Path $staging $name)
+            Save-S3Download -Url "$base/$name" -OutFile (Join-Path $staging $name)
         }
 
         New-Item -ItemType Directory -Path $dest -Force | Out-Null
@@ -88,8 +88,8 @@ if (-not $bundled) {
             $cwdIni = Join-Path (Get-Location).Path "settings.ini"
             if (Test-Path -LiteralPath $cwdIni) {
                 $settingsSource = (Resolve-Path -LiteralPath $cwdIni).Path
-            } elseif (Test-Path -LiteralPath "C:\kd\s3\settings.ini") {
-                $settingsSource = (Resolve-Path -LiteralPath "C:\kd\s3\settings.ini").Path
+            } elseif (Test-Path -LiteralPath "C:\git\s3\settings.ini") {
+                $settingsSource = (Resolve-Path -LiteralPath "C:\git\s3\settings.ini").Path
             }
         }
 
@@ -111,7 +111,7 @@ if (-not $bundled) {
         $code = 0
         if ($null -ne $LASTEXITCODE) { $code = $LASTEXITCODE }
     } catch {
-        Write-Host "Could not download the Knoxxa Digital scripts." -ForegroundColor Red
+        Write-Host "Could not download the S3 drive scripts." -ForegroundColor Red
         Write-Host $_.Exception.Message
         Write-Host "Clone https://github.com/william-bohannan/s3 and run install.ps1 from that folder."
         if (-not $NoPause) { pause }
@@ -123,11 +123,11 @@ if (-not $bundled) {
         }
     }
 
-    if ($knoxxaInline) { return }
+    if ($s3Inline) { return }
     exit $code
 }
 
-$script:KeepKnoxxaCredentials = $true
+$script:KeepS3Credentials = $true
 . "$PSScriptRoot\common.ps1"
 
 function Hide-Secret {
@@ -158,17 +158,25 @@ if (-not $SkipInstall -and -not (Test-IsAdmin)) {
         $argList.Add("-SettingsPath")
         $argList.Add($SettingsPath)
     }
-    Start-Process -FilePath "powershell.exe" -ArgumentList (Format-KnoxxaProcessArguments -Items @($argList.ToArray())) -Verb RunAs
+    Start-Process -FilePath "powershell.exe" -ArgumentList (Format-S3ProcessArguments -Items @($argList.ToArray())) -Verb RunAs
     exit
 }
 
-Write-Host "=== Knoxxa Digital install ($($script:DriveLetter)) ===" -ForegroundColor Cyan
+if ([string]::IsNullOrWhiteSpace($script:Endpoint)) {
+    $enteredEndpoint = Read-Host "RustFS endpoint (https://...)"
+    $endpointError = Get-S3SettingError -Name "Endpoint" -Value $enteredEndpoint
+    if ($endpointError) {
+        Write-Host "Endpoint $endpointError" -ForegroundColor Red
+        if (-not $NoPause) { pause }
+        exit 1
+    }
+    $script:Endpoint = Convert-S3SettingValue -Name "Endpoint" -Value $enteredEndpoint
+}
+
+Write-Host "=== S3 drive install ($($script:DriveLetter)) ===" -ForegroundColor Cyan
 Write-Host "Endpoint: $($script:Endpoint)" -ForegroundColor Gray
 if ($script:SettingsFile) {
     Write-Host "Settings: $($script:SettingsFile)" -ForegroundColor Gray
-}
-if ($script:Endpoint -eq $script:KnoxxaDefaults.Endpoint) {
-    Write-Host "Admin console: https://s31a.knoxxa.digital/rustfs/console/" -ForegroundColor Gray
 }
 Write-Host ""
 
@@ -191,11 +199,11 @@ if (-not $SkipInstall) {
         $ErrorActionPreference = $previous
     }
 
-    Update-KnoxxaPath
+    Update-S3Path
     Write-Host "Install complete." -ForegroundColor Green
 } else {
     Write-Host "[1/5] Skipping install (as requested)." -ForegroundColor Yellow
-    Update-KnoxxaPath
+    Update-S3Path
 }
 
 if (-not (Get-Command rclone -ErrorAction SilentlyContinue)) {
@@ -223,7 +231,7 @@ if (-not [string]::IsNullOrWhiteSpace($SettingsPath) -and -not $script:SettingsF
     exit 1
 }
 
-$creds = Get-KnoxxaInstallCredentials -AccessKey $AccessKey -SecretKey $SecretKey
+$creds = Get-S3InstallCredentials -AccessKey $AccessKey -SecretKey $SecretKey
 $AccessKey = $creds.AccessKey
 $SecretKey = $creds.SecretKey
 
@@ -332,15 +340,15 @@ if ($NoAutoStart) {
     Write-Host "[5/5] Skipping the logon task (as requested)." -ForegroundColor Yellow
 } else {
     Write-Host "[5/5] Registering the logon task..." -ForegroundColor Green
-    Register-KnoxxaLogonTask
+    Register-S3LogonTask
     Write-Host "$($script:DriveLetter) will mount in the background at logon." -ForegroundColor Green
 }
 
 $SecretKey = $null
 $AccessKey = $null
-if ($script:KnoxxaIni) {
-    [void]$script:KnoxxaIni.Remove("AccessKey")
-    [void]$script:KnoxxaIni.Remove("SecretKey")
+if ($script:S3Ini) {
+    [void]$script:S3Ini.Remove("AccessKey")
+    [void]$script:S3Ini.Remove("SecretKey")
 }
 
 if (-not $NoMount) {
@@ -353,7 +361,7 @@ if (-not $NoMount) {
     }
 } else {
     Write-Host "Stopping the previous mount so it cannot keep the old access key." -ForegroundColor Yellow
-    Stop-KnoxxaMount
+    Stop-S3Mount
 }
 
 Write-Host ""

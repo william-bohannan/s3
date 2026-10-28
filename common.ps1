@@ -1,25 +1,25 @@
-# Shared paths and mount helpers for the Knoxxa K: scripts.
+# Shared paths and mount helpers for the s3 drive scripts.
 # A Windows service runs in session 0 and cannot show a drive in This PC.
 # The mount is a hidden rclone process in the normal user session.
 
 # Built-in values. settings.ini overrides a value when that value is valid.
-$script:KnoxxaDefaults = @{
-    RemoteName = "knoxxa"
-    Endpoint = "https://s31.knoxxa.digital"
+$script:S3Defaults = @{
+    RemoteName = "s3"
+    Endpoint = ""
     DriveLetter = "K:"
     Region = "us-east-1"
-    VolumeName = "Knoxxa Digital"
-    LogFile = "C:\kd\s3\log.txt"
+    VolumeName = "S3 drive"
+    LogFile = "C:\git\s3\full.log"
 }
-$script:TaskName = "MountKnoxxaRustFS"
-$script:TaskNow = "MountKnoxxaRustFS-Now"
+$script:TaskName = "MountS3"
+$script:TaskNow = "MountS3-Now"
 $script:Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:LegacyMountScript = Join-Path $env:USERPROFILE "Documents\Mount-Knoxxa.ps1"
 $script:SettingsFile = $null
-$script:KnoxxaIni = @{}
+$script:S3Ini = @{}
 $script:SettingsWarnings = @()
 
-$script:KnoxxaSettingNames = @{
+$script:S3SettingNames = @{
     accesskey = "AccessKey"
     secretkey = "SecretKey"
     endpoint = "Endpoint"
@@ -34,21 +34,21 @@ function Test-IsAdmin {
     return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Update-KnoxxaPath {
+function Update-S3Path {
     $machine = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     $user = [System.Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = "$machine;$user"
 }
 
-function Get-KnoxxaMountProcess {
+function Get-S3MountProcess {
     $drive = [regex]::Escape($script:DriveLetter)
     return @(Get-CimInstance Win32_Process -Filter "Name = 'rclone.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -match '\bmount\b' -and $_.CommandLine -match $drive })
 }
 
-function Test-KnoxxaBackgroundMount {
+function Test-S3BackgroundMount {
     $log = [regex]::Escape($script:LogFile)
-    foreach ($proc in @(Get-KnoxxaMountProcess)) {
+    foreach ($proc in @(Get-S3MountProcess)) {
         if ($proc.CommandLine -match $log) { return $true }
         $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.ParentProcessId)" -ErrorAction SilentlyContinue
         if ($parent -and $parent.CommandLine -match $log) { return $true }
@@ -56,12 +56,12 @@ function Test-KnoxxaBackgroundMount {
     return $false
 }
 
-function Stop-KnoxxaMount {
+function Stop-S3Mount {
     $log = [regex]::Escape($script:LogFile)
     Get-CimInstance Win32_Process -Filter "Name = 'cmd.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -match $log } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    foreach ($proc in @(Get-KnoxxaMountProcess)) {
+    foreach ($proc in @(Get-S3MountProcess)) {
         Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
     }
     Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
@@ -73,7 +73,7 @@ function Stop-KnoxxaMount {
     }
 }
 
-function Get-KnoxxaLogTail {
+function Get-S3LogTail {
     param([int]$Lines = 20)
     if (-not (Test-Path -LiteralPath $script:LogFile)) {
         return "(no log yet)"
@@ -100,8 +100,8 @@ function Get-KnoxxaLogTail {
     return ($all | Select-Object -Last $Lines) -join [Environment]::NewLine
 }
 
-function Start-KnoxxaHidden {
-    Update-KnoxxaPath
+function Start-S3Hidden {
+    Update-S3Path
     $rclone = (Get-Command rclone -ErrorAction SilentlyContinue).Source
     if (-not $rclone) { throw "rclone not found in PATH." }
 
@@ -109,7 +109,7 @@ function Start-KnoxxaHidden {
     if (-not (Test-Path -LiteralPath $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
-    "$(Get-Date -Format o) starting Knoxxa Digital on $($script:DriveLetter)" | Add-Content -LiteralPath $script:LogFile -Encoding UTF8
+    "$(Get-Date -Format o) starting S3 drive on $($script:DriveLetter)" | Add-Content -LiteralPath $script:LogFile -Encoding UTF8
 
     # Leading and trailing quotes are required so cmd.exe /c keeps the inner quotes.
     $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -124,7 +124,7 @@ function Start-KnoxxaHidden {
     $deadline = (Get-Date).AddSeconds(20)
     do {
         Start-Sleep -Seconds 1
-        $up = @(Get-KnoxxaMountProcess)
+        $up = @(Get-S3MountProcess)
     } while ($up.Count -eq 0 -and (Get-Date) -lt $deadline)
 
     if ($up.Count -eq 0) {
@@ -132,7 +132,7 @@ function Start-KnoxxaHidden {
     }
 }
 
-function Start-KnoxxaInUserSession {
+function Start-S3InUserSession {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
     $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -141,13 +141,13 @@ function Start-KnoxxaInUserSession {
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
 
     Unregister-ScheduledTask -TaskName $script:TaskNow -Confirm:$false -ErrorAction SilentlyContinue
-    Register-ScheduledTask -TaskName $script:TaskNow -Action $action -Principal $principal -Settings $settings -Description "Start the Knoxxa Digital mount in the user session" | Out-Null
+    Register-ScheduledTask -TaskName $script:TaskNow -Action $action -Principal $principal -Settings $settings -Description "Start the S3 drive mount in the user session" | Out-Null
     try {
         Start-ScheduledTask -TaskName $script:TaskNow
         $deadline = (Get-Date).AddSeconds(25)
         do {
             Start-Sleep -Seconds 1
-            $up = @(Get-KnoxxaMountProcess)
+            $up = @(Get-S3MountProcess)
         } while ($up.Count -eq 0 -and (Get-Date) -lt $deadline)
     } finally {
         Unregister-ScheduledTask -TaskName $script:TaskNow -Confirm:$false -ErrorAction SilentlyContinue
@@ -158,7 +158,7 @@ function Start-KnoxxaInUserSession {
     }
 }
 
-function Register-KnoxxaLogonTask {
+function Register-S3LogonTask {
     $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
     $startScript = Join-Path $script:Root "start.ps1"
     $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$startScript`""
@@ -167,12 +167,13 @@ function Register-KnoxxaLogonTask {
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
 
     Unregister-ScheduledTask -TaskName $script:TaskName -Confirm:$false -ErrorAction SilentlyContinue
-    Register-ScheduledTask -TaskName $script:TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Mount Knoxxa Digital as $($script:DriveLetter) in the background at logon" | Out-Null
+    Register-ScheduledTask -TaskName $script:TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Mount S3 drive as $($script:DriveLetter) in the background at logon" | Out-Null
 }
 
-function Unregister-KnoxxaTasks {
-    Unregister-ScheduledTask -TaskName $script:TaskName -Confirm:$false -ErrorAction SilentlyContinue
-    Unregister-ScheduledTask -TaskName $script:TaskNow -Confirm:$false -ErrorAction SilentlyContinue
+function Unregister-S3Tasks {
+    foreach ($name in @($script:TaskName, $script:TaskNow, "MountKnoxxaRustFS", "MountKnoxxaRustFS-Now")) {
+        Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
+    }
 }
 
 # PowerShell 5.1 turns native stderr into a terminating error when
@@ -206,16 +207,16 @@ function Invoke-Rclone {
     }
 }
 
-function Reset-KnoxxaDefaults {
-    $script:RemoteName = $script:KnoxxaDefaults.RemoteName
-    $script:Endpoint = $script:KnoxxaDefaults.Endpoint
-    $script:DriveLetter = $script:KnoxxaDefaults.DriveLetter
-    $script:Region = $script:KnoxxaDefaults.Region
-    $script:VolumeName = $script:KnoxxaDefaults.VolumeName
-    $script:LogFile = $script:KnoxxaDefaults.LogFile
+function Reset-S3Defaults {
+    $script:RemoteName = $script:S3Defaults.RemoteName
+    $script:Endpoint = $script:S3Defaults.Endpoint
+    $script:DriveLetter = $script:S3Defaults.DriveLetter
+    $script:Region = $script:S3Defaults.Region
+    $script:VolumeName = $script:S3Defaults.VolumeName
+    $script:LogFile = $script:S3Defaults.LogFile
 }
 
-function Find-KnoxxaSettingsFile {
+function Find-S3SettingsFile {
     param(
         [string]$Explicit,
         [string]$ScriptDir
@@ -236,7 +237,7 @@ function Find-KnoxxaSettingsFile {
         $candidates.Add((Join-Path (Get-Location).Path "settings.ini"))
     } catch {
     }
-    $candidates.Add("C:\kd\s3\settings.ini")
+    $candidates.Add("C:\git\s3\settings.ini")
 
     $seen = @{}
     foreach ($candidate in $candidates) {
@@ -251,7 +252,7 @@ function Find-KnoxxaSettingsFile {
     return $null
 }
 
-function Read-KnoxxaIni {
+function Read-S3Ini {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     $map = @{}
@@ -271,8 +272,8 @@ function Read-KnoxxaIni {
             }
         }
         $lookup = $rawKey.ToLower()
-        if ($script:KnoxxaSettingNames.ContainsKey($lookup)) {
-            $map[$script:KnoxxaSettingNames[$lookup]] = $rawVal
+        if ($script:S3SettingNames.ContainsKey($lookup)) {
+            $map[$script:S3SettingNames[$lookup]] = $rawVal
         } else {
             $map[$rawKey] = $rawVal
         }
@@ -280,7 +281,7 @@ function Read-KnoxxaIni {
     return $map
 }
 
-function Get-KnoxxaSettingError {
+function Get-S3SettingError {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [AllowEmptyString()][string]$Value
@@ -336,7 +337,7 @@ function Get-KnoxxaSettingError {
     return "is not a known setting."
 }
 
-function Convert-KnoxxaSettingValue {
+function Convert-S3SettingValue {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [Parameter(Mandatory = $true)][string]$Value
@@ -355,11 +356,11 @@ function Convert-KnoxxaSettingValue {
     }
 }
 
-function Import-KnoxxaSettings {
+function Import-S3Settings {
     param([string]$Path)
 
-    Reset-KnoxxaDefaults
-    $script:KnoxxaIni = @{}
+    Reset-S3Defaults
+    $script:S3Ini = @{}
     $script:SettingsWarnings = @()
     $script:SettingsFile = $null
 
@@ -368,7 +369,7 @@ function Import-KnoxxaSettings {
         $explicit = [string]$SettingsPath
     }
 
-    $found = Find-KnoxxaSettingsFile -Explicit $explicit -ScriptDir $script:Root
+    $found = Find-S3SettingsFile -Explicit $explicit -ScriptDir $script:Root
     if ([string]::IsNullOrWhiteSpace($found)) { return }
     if (-not (Test-Path -LiteralPath $found)) {
         $script:SettingsWarnings += "Settings file not found: $found"
@@ -377,7 +378,7 @@ function Import-KnoxxaSettings {
 
     $script:SettingsFile = (Resolve-Path -LiteralPath $found).Path
     try {
-        $map = Read-KnoxxaIni -Path $script:SettingsFile
+        $map = Read-S3Ini -Path $script:SettingsFile
     } catch {
         $script:SettingsWarnings += "Could not read $($script:SettingsFile). $($_.Exception.Message)"
         $script:SettingsFile = $null
@@ -387,12 +388,12 @@ function Import-KnoxxaSettings {
     $configNames = @("Endpoint", "DriveLetter", "Region", "RemoteName", "VolumeName", "LogFile")
     foreach ($name in $configNames) {
         if (-not $map.ContainsKey($name)) { continue }
-        $err = Get-KnoxxaSettingError -Name $name -Value ([string]$map[$name])
+        $err = Get-S3SettingError -Name $name -Value ([string]$map[$name])
         if ($err) {
             $script:SettingsWarnings += "$name $err"
             continue
         }
-        $value = Convert-KnoxxaSettingValue -Name $name -Value ([string]$map[$name])
+        $value = Convert-S3SettingValue -Name $name -Value ([string]$map[$name])
         switch ($name) {
             "Endpoint" { $script:Endpoint = $value }
             "DriveLetter" { $script:DriveLetter = $value }
@@ -405,7 +406,7 @@ function Import-KnoxxaSettings {
 
     foreach ($name in @("AccessKey", "SecretKey")) {
         if (-not $map.ContainsKey($name)) { continue }
-        $err = Get-KnoxxaSettingError -Name $name -Value ([string]$map[$name])
+        $err = Get-S3SettingError -Name $name -Value ([string]$map[$name])
         if ($err) {
             # A blank key in the example file means "ask", which is not a warning.
             if ($err -ne "is empty.") {
@@ -414,8 +415,8 @@ function Import-KnoxxaSettings {
             continue
         }
         # start/stop/status do not keep the keys in memory. install.ps1 opts in.
-        if ($script:KeepKnoxxaCredentials) {
-            $script:KnoxxaIni[$name] = Convert-KnoxxaSettingValue -Name $name -Value ([string]$map[$name])
+        if ($script:KeepS3Credentials) {
+            $script:S3Ini[$name] = Convert-S3SettingValue -Name $name -Value ([string]$map[$name])
         }
     }
 
@@ -430,7 +431,7 @@ function Import-KnoxxaSettings {
     }
 }
 
-function Format-KnoxxaProcessArguments {
+function Format-S3ProcessArguments {
     param([Parameter(Mandatory = $true)][string[]]$Items)
     return (($Items | ForEach-Object {
         $text = [string]$_
@@ -442,7 +443,7 @@ function Format-KnoxxaProcessArguments {
     }) -join " ")
 }
 
-function Get-KnoxxaInstallCredentials {
+function Get-S3InstallCredentials {
     param(
         [string]$AccessKey,
         [string]$SecretKey
@@ -452,12 +453,12 @@ function Get-KnoxxaInstallCredentials {
     $secret = $SecretKey
     $accessFromIni = $false
     $secretFromIni = $false
-    if ([string]::IsNullOrWhiteSpace($access) -and $script:KnoxxaIni.ContainsKey("AccessKey")) {
-        $access = [string]$script:KnoxxaIni["AccessKey"]
+    if ([string]::IsNullOrWhiteSpace($access) -and $script:S3Ini.ContainsKey("AccessKey")) {
+        $access = [string]$script:S3Ini["AccessKey"]
         $accessFromIni = $true
     }
-    if ([string]::IsNullOrWhiteSpace($secret) -and $script:KnoxxaIni.ContainsKey("SecretKey")) {
-        $secret = [string]$script:KnoxxaIni["SecretKey"]
+    if ([string]::IsNullOrWhiteSpace($secret) -and $script:S3Ini.ContainsKey("SecretKey")) {
+        $secret = [string]$script:S3Ini["SecretKey"]
         $secretFromIni = $true
     }
 
@@ -470,5 +471,5 @@ function Get-KnoxxaInstallCredentials {
     }
 }
 
-Reset-KnoxxaDefaults
-Import-KnoxxaSettings
+Reset-S3Defaults
+Import-S3Settings

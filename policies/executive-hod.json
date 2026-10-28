@@ -1,0 +1,137 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BusinessDevelopmentFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::business-development",
+        "arn:aws:s3:::business-development/*"
+      ]
+    },
+    {
+      "Sid": "CatalogFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::catalog",
+        "arn:aws:s3:::catalog/*"
+      ]
+    },
+    {
+      "Sid": "CustomersFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::customers",
+        "arn:aws:s3:::customers/*"
+      ]
+    },
+    {
+      "Sid": "EngineeringFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::engineering",
+        "arn:aws:s3:::engineering/*"
+      ]
+    },
+    {
+      "Sid": "ExecutiveFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::executive",
+        "arn:aws:s3:::executive/*"
+      ]
+    },
+    {
+      "Sid": "HodFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::hod",
+        "arn:aws:s3:::hod/*"
+      ]
+    },
+    {
+      "Sid": "HumanResourcesFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::human-resources",
+        "arn:aws:s3:::human-resources/*"
+      ]
+    },
+    {
+      "Sid": "InfrastructureFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::infrastructure",
+        "arn:aws:s3:::infrastructure/*"
+      ]
+    },
+    {
+      "Sid": "KnoxxaDigitalFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::knoxxa-digital",
+        "arn:aws:s3:::knoxxa-digital/*"
+      ]
+    },
+    {
+      "Sid": "LegalFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::legal",
+        "arn:aws:s3:::legal/*"
+      ]
+    },
+    {
+      "Sid": "OperationsFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::operations",
+        "arn:aws:s3:::operations/*"
+      ]
+    },
+    {
+      "Sid": "SalesFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::sales",
+        "arn:aws:s3:::sales/*"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
-# Start the Knoxxa Digital K: mount in the background. No window.
-# Log: C:\kd\s3\log.txt unless settings.ini sets LogFile.
+# Start the S3 drive in the background. No window.
+# Log: C:\git\s3\full.log unless settings.ini sets LogFile.
 # -Restart stops the running mount first. A live rclone process keeps the
 # access key it loaded at startup, so a new key is ignored until restart.
 param([switch]$Restart)
@@ -7,27 +7,27 @@ param([switch]$Restart)
 . "$PSScriptRoot\common.ps1"
 $ErrorActionPreference = "Stop"
 
-if ((Test-KnoxxaBackgroundMount) -and -not $Restart) {
-    Write-Host "Knoxxa Digital is already running in the background."
+if ((Test-S3BackgroundMount) -and -not $Restart) {
+    Write-Host "S3 drive is already running in the background."
     Write-Host "Log: $($script:LogFile)"
     exit 0
 }
 
 if ($Restart) {
     Write-Host "Restarting the mount so it reloads the saved access key..."
-    Stop-KnoxxaMount
+    Stop-S3Mount
 }
 
 if (Test-IsAdmin) {
     Write-Host "Starting the mount in the normal user session..."
-    Start-KnoxxaInUserSession -ScriptPath $PSCommandPath
-    Write-Host "Knoxxa Digital is running in the background."
+    Start-S3InUserSession -ScriptPath $PSCommandPath
+    Write-Host "S3 drive is running in the background."
     Write-Host "Log: $($script:LogFile)"
     exit 0
 }
 
-Stop-KnoxxaMount
-Start-KnoxxaHidden
-Write-Host "Knoxxa Digital is running in the background."
+Stop-S3Mount
+Start-S3Hidden
+Write-Host "S3 drive is running in the background."
 Write-Host "Log: $($script:LogFile)"
 exit 0

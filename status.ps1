@@ -1,11 +1,11 @@
-# Show whether Knoxxa Digital (K:) is mounted.
+# Show whether the S3 drive is mounted.
 . "$PSScriptRoot\common.ps1"
 $ErrorActionPreference = "Stop"
 
-$procs = @(Get-KnoxxaMountProcess)
+$procs = @(Get-S3MountProcess)
 $task = Get-ScheduledTask -TaskName $script:TaskName -ErrorAction SilentlyContinue
 
-Write-Host "Knoxxa Digital ($($script:DriveLetter))"
+Write-Host "S3 drive ($($script:DriveLetter))"
 if ($script:SettingsFile) {
     Write-Host "Settings: $($script:SettingsFile)"
 } else {
@@ -37,7 +37,7 @@ if (Test-IsAdmin) {
 
 Write-Host "Log: $($script:LogFile)"
 Write-Host "----"
-Write-Host (Get-KnoxxaLogTail -Lines 20)
+Write-Host (Get-S3LogTail -Lines 20)
 
 if ($procs.Count -gt 0) { exit 0 }
 exit 1

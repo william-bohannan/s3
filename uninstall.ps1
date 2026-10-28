@@ -1,16 +1,16 @@
-# Remove the Knoxxa K: mount, logon task, and rclone remote.
+# Remove the s3 drive mount, logon task, and rclone remote.
 # WinFsp and rclone themselves stay installed.
 param([switch]$NoPause)
 
 . "$PSScriptRoot\common.ps1"
 $ErrorActionPreference = "Stop"
-Update-KnoxxaPath
+Update-S3Path
 
 Write-Host "Stopping the mount..." -ForegroundColor Green
-Stop-KnoxxaMount
+Stop-S3Mount
 
 Write-Host "Removing the logon task..." -ForegroundColor Green
-Unregister-KnoxxaTasks
+Unregister-S3Tasks
 
 if (Test-Path -LiteralPath $script:LegacyMountScript) {
     Remove-Item -LiteralPath $script:LegacyMountScript -Force
@@ -35,7 +35,7 @@ if (Test-Path -LiteralPath $script:LogFile) {
 }
 
 Write-Host ""
-Write-Host "Knoxxa Digital has been removed for this Windows user." -ForegroundColor Cyan
+Write-Host "S3 drive has been removed for this Windows user." -ForegroundColor Cyan
 Write-Host "WinFsp and rclone are still installed." -ForegroundColor Gray
 if ($script:SettingsFile) {
     Write-Host "Left settings in $($script:SettingsFile)." -ForegroundColor Gray
