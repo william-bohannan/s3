@@ -14,16 +14,24 @@ Mount a [RustFS](https://github.com/rustfs/rustfs) server as a drive. On Windows
 
 Put your settings file in the current directory, then run the command for your system.
 
-Windows uses `settings.ini`:
+Windows Installer uses `settings.ini`:
 
 ```powershell
 irm https://raw.githubusercontent.com/william-bohannan/s3/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/william-bohannan/s3/main/uninstall.ps1 | iex
 ```
 
-Ubuntu uses `.env`:
+Ubuntu Installer uses `.env`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/uninstall.sh | bash
+```
+
+Ubuntu Policies, run on local RustFS server, Admin user in `.env`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/policies.sh | bash
 ```
 
 ## Windows
@@ -156,7 +164,7 @@ Put `.env` in the current directory and run (example /git/s3/):
 curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
 ```
 
-The command saves `install.sh` and `.env.example` to `~/.local/share/s3`, installs **fuse3** with apt, and installs **rclone 1.67 or newer** into `~/.local/bin` when the copy already on `PATH` is older. Run the same line again to update the script and reload the mount. After the mount is up, it asks whether to install and start `s3-ensure-dirs`. Answer `y` to install it. Press Enter to skip.
+The command saves `install.sh`, `uninstall.sh`, and `.env.example` to `~/.local/share/s3`, installs **fuse3** with apt, and installs **rclone 1.67 or newer** into `~/.local/bin` when the copy already on `PATH` is older. Run the same line again to update the scripts and reload the mount. After the mount is up, it asks whether to install and start `s3-ensure-dirs`. Answer `y` to install it. Press Enter to skip.
 
 From a clone of this repo:
 
@@ -181,6 +189,9 @@ ACCESS_KEY_ID=your-access-key
 SECRET_ACCESS_KEY=your-secret-key
 S3_ENDPOINT_URL=https://s3.example.com
 S3_ROOT=/mnt/s3
+
+RUSTFS_ADMIN_USER=your-admin-user
+RUSTFS_ADMIN_PASS=your-admin-password
 ```
 
 | Name | Valid value |
@@ -192,6 +203,8 @@ S3_ROOT=/mnt/s3
 | `REMOTE_NAME` | Optional. A short rclone remote name. Built-in value `s3`. |
 | `VOLUME_NAME` | Optional. 1–32 characters. Built-in value `S3 drive`. |
 | `LOG_FILE` | Optional. A full path, including the file name. |
+| `RUSTFS_ADMIN_USER`, `RUSTFS_ADMIN_PASS` | Admin account for `policies.sh`. The mount key is not used. |
+| `RUSTFS_ENDPOINT` | Optional. `http` or `https` URL for `policies.sh`. Built-in value `http://127.0.0.1:9000`. |
 
 A blank optional value is reported and the built-in default stays. An unknown name is reported and ignored. Lines starting with `#` are comments.
 
@@ -214,7 +227,51 @@ Stop the mount with:
 fusermount3 -u /mnt/s3
 ```
 
-Use the folder from `S3_ROOT`. rclone, fuse3, and `.env` stay on the machine. Remove the saved remote with `rclone config delete s3` when you want that gone too. The built-in remote name is `s3`.
+Use the folder from `S3_ROOT`. That stops the mount and leaves the rest of the install in place.
+
+To remove the drive, the saved credentials, the file cache, and the hourly folder job:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/uninstall.sh | bash
+```
+
+From a clone:
+
+```bash
+bash uninstall.sh
+```
+
+### Removed on uninstall
+
+- The rclone mount, and the mount folder when it is empty afterwards
+- The rclone remote named in `.env` (built-in name `s3`)
+- That remote's file cache under `~/.cache/rclone/vfs` and `~/.cache/rclone/vfsMeta`
+- The log file
+- `~/.local/share/s3`, including the saved installer and its `.env`
+- `~/.config/s3`
+- `/etc/cron.hourly/s3-ensure-dirs` and `/etc/default/s3-ensure-dirs`
+- `~/.local/bin/rclone`, when this install was found and no other rclone remotes remain
+- `~/.config/rclone/rclone.conf`, when deleting that remote leaves the file with no remotes
+
+fuse3, `user_allow_other` in `/etc/fuse.conf`, and the `fuse` group stay, because other programs on the machine may use them. An rclone package installed with apt stays. `~/.local/bin/rclone` stays when other remotes are still configured. A `.env` next to a clone, or in the current directory, stays so the installer can be run again. The built-in remote name is `s3`. An unrelated rclone remote of that name is left alone unless files from this install are present.
+
+### Policies
+
+On the machine where RustFS is running, `policies.sh` loads every `policies/*.json` file into that server. The policy name is the file name. A policy that already exists is replaced. Policies are not attached to users, and policies that are not in that folder are left as they are. The built-in policies `readonly`, `readwrite`, `writeonly`, `diagnostics`, and `consoleAdmin` are left as they are.
+
+It reads `RUSTFS_ADMIN_USER` and `RUSTFS_ADMIN_PASS` from `.env`. The mount access key is not used. It talks to `http://127.0.0.1:9000`, or to `RUSTFS_ENDPOINT` when that value is set. When `rc` 0.1.36 or newer is missing, the script downloads it into `~/.local/bin`. The admin account is saved as the `s3-policies` alias in `~/.config/rc/config.toml`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/policies.sh | bash
+```
+
+From a clone, with `.env` next to the script or in the current directory:
+
+```bash
+bash policies.sh
+```
+
+Run it again after a policy file changes. The same policies are replaced.
 
 ### Standard site folders
 

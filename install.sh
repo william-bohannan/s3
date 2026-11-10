@@ -4,6 +4,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/install.sh | bash
 # Run it again after changing .env so the mount picks up the new access key.
 # After the mount is up, it asks whether to install and start s3-ensure-dirs.
+# Remove it with:
+#   curl -fsSL https://raw.githubusercontent.com/william-bohannan/s3/main/uninstall.sh | bash
 
 set -euo pipefail
 
@@ -293,6 +295,9 @@ parse_env_file() {
         else
           LOG_FILE="$value"
         fi
+        ;;
+      RUSTFS_ADMIN_USER|RUSTFS_ADMIN_PASS|RUSTFS_ENDPOINT)
+        # policies.sh reads these. The mount does not.
         ;;
       *)
         SETTINGS_WARNINGS+=("Unknown name ${key}.")
@@ -748,7 +753,7 @@ offer_ensure_dirs() {
 }
 
 bootstrap_and_exec() {
-  local dest tmp example
+  local dest tmp example uninstaller
   [[ "$(id -u)" -eq 0 ]] && die "Run this as your regular user. It uses sudo only for system changes."
   dest="${XDG_DATA_HOME:-$HOME/.local/share}/s3"
   mkdir -p "$dest"
@@ -771,6 +776,14 @@ bootstrap_and_exec() {
     if head -n 20 "$example" | grep -q 'ACCESS_KEY_ID'; then
       mv "$example" "${dest}/.env.example"
       chmod 644 "${dest}/.env.example"
+    fi
+  fi
+  uninstaller="$(mktemp)"
+  TMP_FILES+=("$uninstaller")
+  if curl -fsSL "${S3_RAW_BASE}/uninstall.sh" -o "$uninstaller" 2>/dev/null; then
+    if head -n 12 "$uninstaller" | grep -q 'Remove the S3 drive'; then
+      mv "$uninstaller" "${dest}/uninstall.sh"
+      chmod 755 "${dest}/uninstall.sh"
     fi
   fi
   rm -f "$example" "${tmp}.err"
